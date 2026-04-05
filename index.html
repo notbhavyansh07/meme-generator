@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ MemeGPT Pro — AI Meme Generator</title>
+    <meta name="description" content="MemeGPT Pro: The ultimate AI-powered meme generator with 80+ templates, custom AI images, and instant downloads.">
+    <meta property="og:title" content="MemeGPT Pro — AI Meme Generator">
+    <meta property="og:description" content="Generate viral memes instantly with AI. 80+ templates, custom captions, HD download.">
+    <link rel="stylesheet" href="./style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Animated Background Orbs -->
+    <div class="bg-orbs" aria-hidden="true">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast" role="alert" aria-live="polite"></div>
+
+    <div id="app">
+        <!-- ── HEADER ───────────────────────────────── -->
+        <header class="site-header">
+            <div class="header-left">
+                <div class="logo-wrap">
+                    <span class="logo-icon">⚡</span>
+                    <h1 class="logo">Meme<span>GPT</span> <sup class="pro-badge">PRO</sup></h1>
+                </div>
+                <p class="subtitle">AI-Powered Viral Meme Studio • 80+ Templates</p>
+            </div>
+            <div class="header-right">
+                <div class="stat-pill" id="memeCount">🎭 0 memes made</div>
+                <button id="historyToggleBtn" class="icon-btn" title="Meme History">
+                    🕐 History
+                </button>
+                <button id="themeToggleBtn" class="icon-btn" title="Toggle theme">🌙</button>
+            </div>
+        </header>
+
+        <div class="main-layout">
+            <!-- ── LEFT PANEL: CONTROLS ─────────────────── -->
+            <aside class="control-panel glass-card">
+
+                <!-- CHAOS BUTTON -->
+                <button id="autoChaosBtn" class="btn-chaos">
+                    <span class="chaos-icon">🚀</span>
+                    <span>AUTO-MEME CHAOS</span>
+                    <span class="chaos-badge">RANDOM</span>
+                </button>
+
+                <!-- TABS -->
+                <div class="tabs" role="tablist">
+                    <button class="tab active" data-tab="ai" role="tab" aria-selected="true">🤖 AI Mode</button>
+                    <button class="tab" data-tab="template" role="tab" aria-selected="false">🎭 Templates</button>
+                    <button class="tab" data-tab="style" role="tab" aria-selected="false">✨ Style</button>
+                </div>
+
+                <!-- TAB: AI MODE -->
+                <div class="tab-panel active" id="tab-ai">
+                    <div class="field-group">
+                        <label for="prompt" class="field-label">💡 Your Meme Idea</label>
+                        <div class="prompt-wrap">
+                            <textarea id="prompt" rows="3" placeholder="e.g. 'coding bugs at 3am', 'Monday morning energy'..."></textarea>
+                            <button id="gptThinkBtn" class="btn-think" title="GPT Think — auto-optimize prompt">
+                                ✨ AI Think
+                            </button>
+                        </div>
+                        <div class="prompt-chips" id="ideaChips">
+                            <button class="chip">😭 Coding bugs</button>
+                            <button class="chip">☕ Monday energy</button>
+                            <button class="chip">🤦 Stack Overflow</button>
+                            <button class="chip">🚀 Deploy Friday</button>
+                            <button class="chip">😤 Pull requests</button>
+                            <button class="chip">💀 Deadlines</button>
+                        </div>
+                    </div>
+
+                    <!-- MOOD SELECTOR -->
+                    <div class="field-group">
+                        <label class="field-label">🎭 Meme Mood</label>
+                        <div class="mood-grid" id="moodGrid">
+                            <button class="mood-btn active" data-mood="funny" title="Funny">
+                                <span class="mood-emoji">😂</span>
+                                <span class="mood-name">Funny</span>
+                            </button>
+                            <button class="mood-btn" data-mood="angry" title="Angry">
+                                <span class="mood-emoji">😤</span>
+                                <span class="mood-name">Angry</span>
+                            </button>
+                            <button class="mood-btn" data-mood="sad" title="Sad">
+                                <span class="mood-emoji">😢</span>
+                                <span class="mood-name">Sad</span>
+                            </button>
+                            <button class="mood-btn" data-mood="happy" title="Happy">
+                                <span class="mood-emoji">😊</span>
+                                <span class="mood-name">Happy</span>
+                            </button>
+                            <button class="mood-btn" data-mood="sarcastic" title="Sarcastic">
+                                <span class="mood-emoji">😏</span>
+                                <span class="mood-name">Sarcastic</span>
+                            </button>
+                            <button class="mood-btn" data-mood="dank" title="Dank / Absurd">
+                                <span class="mood-emoji">🤪</span>
+                                <span class="mood-name">Dank</span>
+                            </button>
+                            <button class="mood-btn" data-mood="wholesome" title="Wholesome">
+                                <span class="mood-emoji">🥰</span>
+                                <span class="mood-name">Wholesome</span>
+                            </button>
+                            <button class="mood-btn" data-mood="relatable" title="Relatable">
+                                <span class="mood-emoji">💀</span>
+                                <span class="mood-name">Relatable</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- AI CAPTION SUGGESTIONS -->
+                    <div class="field-group">
+                        <div class="caption-header-row">
+                            <label class="field-label">🤖 AI Caption Suggestions</label>
+                            <button id="refreshCaptionsBtn" class="btn-refresh" title="Generate new suggestions">
+                                🔄 Refresh
+                            </button>
+                        </div>
+                        <div class="caption-suggestions" id="captionSuggestions">
+                            <!-- Injected by JS -->
+                            <div class="suggestions-placeholder">
+                                <span>Select a mood &amp; template, then click <strong>Generate Captions</strong></span>
+                            </div>
+                        </div>
+                        <button id="aiCaptionBtn" class="btn-ai-caption">
+                            <span>✨ Generate AI Captions</span>
+                        </button>
+                    </div>
+
+                    <!-- CAPTION INPUTS -->
+                    <div class="field-group">
+                        <label class="field-label">📝 Captions <span class="caption-mode-tag" id="captionModeTag">Manual</span></label>
+                        <div class="caption-field-wrap">
+                            <input type="text" id="topText" class="caption-input" placeholder="TOP TEXT">
+                            <button class="caption-dice-btn" data-target="top" title="Random top caption">🎲</button>
+                        </div>
+                        <div class="caption-field-wrap">
+                            <input type="text" id="bottomText" class="caption-input" placeholder="BOTTOM TEXT">
+                            <button class="caption-dice-btn" data-target="bottom" title="Random bottom caption">🎲</button>
+                        </div>
+                        <div class="caption-hint">💡 Click a suggestion above to auto-fill, or type your own</div>
+                    </div>
+                </div>
+
+                <!-- TAB: TEMPLATES -->
+                <div class="tab-panel" id="tab-template">
+                    <div class="template-search-wrap">
+                        <input type="text" id="templateSearch" class="template-search" placeholder="🔍 Search templates...">
+                    </div>
+                    <div class="template-filter-bar" id="categoryFilter">
+                        <button class="cat-btn active" data-cat="all">All</button>
+                        <button class="cat-btn" data-cat="viral">🔥 Viral</button>
+                        <button class="cat-btn" data-cat="reaction">😂 Reaction</button>
+                        <button class="cat-btn" data-cat="multi">🎭 Multi</button>
+                        <button class="cat-btn" data-cat="popculture">🎬 Pop</button>
+                        <button class="cat-btn" data-cat="classic">🌐 Classic</button>
+                    </div>
+                    <div class="template-grid" id="templateGrid">
+                        <!-- Injected by JS -->
+                    </div>
+                    <!-- Hidden select for compatibility -->
+                    <select id="template" style="display:none">
+                        <option value="custom">Custom AI</option>
+                    </select>
+                </div>
+
+                <!-- TAB: STYLE -->
+                <div class="tab-panel" id="tab-style">
+                    <div class="field-group">
+                        <label class="field-label">🎨 Visual Filter</label>
+                        <div class="style-grid" id="filterGrid">
+                            <button class="style-card active" data-filter="none">
+                                <span class="style-icon">✨</span>
+                                <span>Original</span>
+                            </button>
+                            <button class="style-card" data-filter="dank">
+                                <span class="style-icon">🔥</span>
+                                <span>Deep Fried</span>
+                            </button>
+                            <button class="style-card" data-filter="grayscale">
+                                <span class="style-icon">🖤</span>
+                                <span>Grayscale</span>
+                            </button>
+                            <button class="style-card" data-filter="vintage">
+                                <span class="style-icon">📷</span>
+                                <span>Vintage</span>
+                            </button>
+                            <button class="style-card" data-filter="neon">
+                                <span class="style-icon">🌈</span>
+                                <span>Neon</span>
+                            </button>
+                            <button class="style-card" data-filter="vhs">
+                                <span class="style-icon">📼</span>
+                                <span>VHS Glitch</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <label class="field-label">🔤 Caption Font</label>
+                        <div class="font-options" id="fontPicker">
+                            <button class="font-btn active" data-font="Impact">Impact</button>
+                            <button class="font-btn" data-font="Arial Black">Arial Black</button>
+                            <button class="font-btn" data-font="Space Grotesk">Grotesk</button>
+                            <button class="font-btn" data-font="Outfit">Outfit</button>
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <label class="field-label">📏 Font Size: <span id="fontSizeVal">80</span>px</label>
+                        <input type="range" id="fontSize" min="40" max="120" value="80" class="slider">
+                    </div>
+
+                    <div class="field-group">
+                        <label class="field-label">🖊️ Caption Color</label>
+                        <div class="color-row">
+                            <button class="color-dot active" data-color="white" style="background:#fff" title="White"></button>
+                            <button class="color-dot" data-color="yellow" style="background:#FFE600" title="Yellow"></button>
+                            <button class="color-dot" data-color="#FF6B6B" style="background:#FF6B6B" title="Red"></button>
+                            <button class="color-dot" data-color="#4ECDC4" style="background:#4ECDC4" title="Teal"></button>
+                            <button class="color-dot" data-color="#45B7D1" style="background:#45B7D1" title="Blue"></button>
+                            <button class="color-dot" data-color="#96CEB4" style="background:#96CEB4" title="Green"></button>
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <label class="field-label">🔢 Meme Quality</label>
+                        <select id="style" class="styled-select">
+                            <option value="turbo">⚡ Turbo (Fastest)</option>
+                            <option value="hd" selected>🎯 HD Standard</option>
+                            <option value="ultra">💎 Ultra HD</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- GENERATE BUTTON -->
+                <button id="generateBtn" class="btn-generate">
+                    <span class="btn-icon">⚡</span>
+                    <span class="btn-text">GENERATE MEME</span>
+                    <div class="btn-loader hide"></div>
+                </button>
+
+                <div class="selected-template-preview" id="selectedPreview">
+                    <span class="preview-label">Template:</span>
+                    <span id="selectedTemplateName">🤖 Custom AI (Unique)</span>
+                </div>
+            </aside>
+
+            <!-- ── RIGHT PANEL: RESULT ───────────────────── -->
+            <main class="result-panel">
+                <!-- Empty state -->
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-animation">⚡</div>
+                    <h2>Your meme appears here</h2>
+                    <p>Choose a template or hit <strong>AUTO-MEME CHAOS</strong> to get started</p>
+                    <div class="feature-pills">
+                        <span class="feature-pill">🎭 80+ Templates</span>
+                        <span class="feature-pill">🤖 AI Generated</span>
+                        <span class="feature-pill">📥 HD Download</span>
+                        <span class="feature-pill">🔗 Share Link</span>
+                    </div>
+                </div>
+
+                <!-- Result -->
+                <div id="result-area" class="hide">
+                    <div class="result-top-bar">
+                        <span class="result-label" id="resultLabel">Generated Meme</span>
+                        <div class="result-actions-top">
+                            <button id="copyLinkBtn" class="action-top-btn" title="Copy share link">🔗 Share</button>
+                            <button id="copyImgBtn" class="action-top-btn" title="Copy image">📋 Copy</button>
+                        </div>
+                    </div>
+
+                    <div id="canvas-wrapper" class="canvas-wrap">
+                        <!-- Direct image display for template memes (captions already in JPG) -->
+                        <img id="memeImg" class="meme-img hide" alt="Generated meme" crossorigin="anonymous">
+                        <!-- Canvas used for AI / custom / filter modes -->
+                        <canvas id="memeCanvas" class="hide"></canvas>
+                        <div class="status-overlay" id="statusOverlay">
+                            <div class="status-icon" id="statusIcon">⚡</div>
+                            <div class="status-text" id="statusText">Generating...</div>
+                            <div class="progress-bar">
+                                <div class="progress-inner" id="progressInner"></div>
+                            </div>
+                            <div class="progress-percent" id="progressPct">0%</div>
+                        </div>
+                    </div>
+
+                    <div class="result-action-bar">
+                        <button id="downloadBtn" class="btn-download">
+                            📥 Download HD
+                        </button>
+                        <button id="remixBtn" class="btn-remix">
+                            🎲 Remix
+                        </button>
+                        <button id="copyEmojiBtn" class="btn-share">
+                            😂 Copy as Emoji
+                        </button>
+                        <button id="tweetBtn" class="btn-tweet">
+                            🐦 Tweet It
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- ── HISTORY PANEL ─────────────────────────────── -->
+        <div id="historyPanel" class="history-panel hide">
+            <div class="history-header">
+                <h3>🕐 Meme History</h3>
+                <div class="history-header-actions">
+                    <button id="clearHistoryBtn" class="btn-sm-danger">Clear All</button>
+                    <button id="historyCloseBtn" class="icon-btn">✕</button>
+                </div>
+            </div>
+            <div id="historyGrid" class="history-grid">
+                <div class="history-empty">No memes yet. Generate some! 🎭</div>
+            </div>
+        </div>
+
+        <footer class="site-footer">
+            <p>MemeGPT Pro v11.0 • 80+ Templates • AI-Powered • Made with ⚡</p>
+        </footer>
+    </div>
+
+    <script type="module" src="/main.js"></script>
+</body>
+</html>
