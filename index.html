@@ -11,6 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gifshot/0.3.2/gifshot.min.js"></script>
 </head>
 <body>
     <!-- Animated Background Orbs -->
@@ -244,6 +245,28 @@
                     </div>
                 </div>
 
+                <!-- PREMIUM EXTRAS -->
+                <div class="premium-toggles">
+                    <div class="toggle-row">
+                        <label class="toggle-label" title="Remove the watermark logo">
+                            💎 Pro Mode (No Watermark)
+                        </label>
+                        <label class="switch">
+                            <input type="checkbox" id="proModeToggle">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="toggle-row">
+                        <label class="toggle-label" title="Export as a shaking Animated GIF">
+                            🎬 Export as Animated GIF
+                        </label>
+                        <label class="switch">
+                            <input type="checkbox" id="gifExportToggle">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+
                 <!-- GENERATE BUTTON -->
                 <button id="generateBtn" class="btn-generate">
                     <span class="btn-icon">⚡</span>
@@ -298,17 +321,17 @@
                     </div>
 
                     <div class="result-action-bar">
-                        <button id="downloadBtn" class="btn-download">
-                            📥 Download HD
+                        <button id="whatsappBtn" class="btn-whatsapp" title="Share directly to WhatsApp">
+                            💬 WhatsApp
                         </button>
-                        <button id="remixBtn" class="btn-remix">
+                        <button id="downloadBtn" class="btn-download" title="Manual Share for Instagram">
+                            📸 Download (IG)
+                        </button>
+                        <button id="tweetBtn" class="btn-tweet" title="Share via Twitter">
+                            🐦 Tweet Link
+                        </button>
+                        <button id="remixBtn" class="btn-remix" title="Regenerate meme">
                             🎲 Remix
-                        </button>
-                        <button id="copyEmojiBtn" class="btn-share">
-                            😂 Copy as Emoji
-                        </button>
-                        <button id="tweetBtn" class="btn-tweet">
-                            🐦 Tweet It
                         </button>
                     </div>
                 </div>

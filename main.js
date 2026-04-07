@@ -488,20 +488,44 @@ function showCanvasMode() {
     memeImg.classList.add('hide');
 }
 function showImgMode(url) {
-    memeImg.src = url;
-    memeImg.classList.remove('hide');
-    canvas.classList.add('hide');
-    // For download: capture the img as dataURL via canvas off-screen
-    memeImg.onload = () => {
+    const tempImg = new Image();
+    tempImg.crossOrigin = "anonymous"; // Enable cross-origin for CORS-enabled memegen.link APIs
+    
+    tempImg.onload = () => {
         const offCanvas = document.createElement('canvas');
-        offCanvas.width  = memeImg.naturalWidth;
-        offCanvas.height = memeImg.naturalHeight;
+        offCanvas.width  = tempImg.naturalWidth;
+        // Crop 24px off the bottom to remove the default `memegen.link` watermark
+        const cropAmount = 24;
+        offCanvas.height = Math.max(1, tempImg.naturalHeight - cropAmount); 
         const offCtx = offCanvas.getContext('2d');
-        offCtx.drawImage(memeImg, 0, 0);
-        try { currentDataUrl = offCanvas.toDataURL('image/jpeg', 0.92); } catch { currentDataUrl = url; }
+        
+        // Draw the image, slicing off the bottom text layer
+        offCtx.drawImage(tempImg, 0, 0, tempImg.naturalWidth, tempImg.naturalHeight);
+
+        // Overlay our Premium Default Site watermark
+        drawPremiumWatermark(offCtx, offCanvas.width, offCanvas.height);
+
+        try { 
+            currentDataUrl = offCanvas.toDataURL('image/jpeg', 0.92); 
+            memeImg.src = currentDataUrl; // Show users the cropped, styled result
+        } catch { 
+            currentDataUrl = url; 
+            memeImg.src = url;
+        }
+        
+        memeImg.classList.remove('hide');
+        canvas.classList.add('hide');
     };
-    // Fallback data URL for download if CORS fails
-    currentDataUrl = url;
+    
+    tempImg.onerror = () => {
+        // Safe fallback if proxy/CORS block occurs
+        memeImg.src = url;
+        currentDataUrl = url;
+        memeImg.classList.remove('hide');
+        canvas.classList.add('hide');
+    };
+    
+    tempImg.src = url;
 }
 
 // ─── CAPTION ENCODING ────────────────────────────────────────────────────────
@@ -612,6 +636,9 @@ function drawFallbackMeme(top, bottom, prompt = '') {
     ctx.textAlign = 'right';
     ctx.fillText('MemeGPT AI • Offline Mode', W - 20, H - 20);
 
+    // Premium Site watermark
+    drawPremiumWatermark(ctx, W, H);
+
     currentDataUrl = canvas.toDataURL('image/png');
     return { isAI: true, usedFallback: true };
 }
@@ -647,6 +674,9 @@ function drawMeme(img, top, bottom, isAI = false) {
         if (bottom) drawCaption(bottom, W / 2, bottomY);
     }
 
+    // Premium Site watermark
+    drawPremiumWatermark(ctx, W, H);
+
     currentDataUrl = canvas.toDataURL('image/jpeg', 0.92);
 }
 
@@ -660,6 +690,47 @@ function getCanvasFilter(f) {
         case 'neon':      return 'contrast(130%) saturate(250%) hue-rotate(20deg) brightness(110%)';
         default:          return 'none';
     }
+}
+
+function drawPremiumWatermark(ctxTarget, width, height) {
+    if (document.getElementById('proModeToggle') && document.getElementById('proModeToggle').checked) {
+        return; // Skip watermark in Pro Mode
+    }
+    ctxTarget.save();
+    const text = "⚡ MemeGPT Pro";
+    
+    // Scale font size based on image width
+    const fontSize = Math.max(16, Math.floor(width * 0.035));
+    
+    ctxTarget.font = `800 ${fontSize}px Inter, sans-serif`;
+    const textW = ctxTarget.measureText(text).width;
+    
+    const pillW = textW + 30;
+    const pillH = fontSize + 20;
+    const x = 15;
+    const y = height - pillH - 15;
+    
+    // Glassmorphism background pill
+    ctxTarget.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctxTarget.beginPath();
+    ctxTarget.roundRect(x, y, pillW, pillH, 12);
+    ctxTarget.fill();
+    
+    ctxTarget.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctxTarget.lineWidth = 1;
+    ctxTarget.stroke();
+
+    // Text
+    ctxTarget.textAlign = 'left';
+    ctxTarget.textBaseline = 'middle';
+    ctxTarget.shadowColor = 'rgba(0,0,0,0.8)';
+    ctxTarget.shadowBlur = 4;
+    
+    ctxTarget.fillStyle = '#fff';
+    ctxTarget.font = `800 ${fontSize}px Inter, sans-serif`;
+    ctxTarget.fillText(text, x + 15, y + pillH / 2 + 2);
+    
+    ctxTarget.restore();
 }
 
 function drawVHSEffect() {
@@ -709,6 +780,74 @@ function showOverlay() {
 function hideOverlay() {
     statusOverlay.style.opacity = '0';
     statusOverlay.style.pointerEvents = 'none';
+}
+
+// ─── GIF EXPORT ENGINE ────────────────────────────────────────────────────────
+async function makeAnimatedGif() {
+    return new Promise(async (resolve) => {
+        if (!window.gifshot) {
+            showToast('⚠️ GIF compiler missing!'); 
+            return resolve();
+        }
+        
+        // We need an array of slightly distorted frames from currentDataUrl
+        const baseImg = new Image();
+        baseImg.crossOrigin = 'anonymous';
+        baseImg.src = currentDataUrl;
+        await new Promise(r => { baseImg.onload = r; baseImg.onerror = r; });
+        
+        const w = baseImg.width || 600;
+        const h = baseImg.height || 900;
+        const off = document.createElement('canvas');
+        off.width = w; off.height = h;
+        const oCtx = off.getContext('2d');
+        
+        const frames = [];
+        
+        // Minimal, Premium "Breathing/Zoom" effect (12 smooth frames)
+        const totalFrames = 12;
+        for(let i=0; i<totalFrames; i++) {
+            oCtx.clearRect(0,0,w,h);
+            oCtx.fillStyle = '#0a0a0f';
+            oCtx.fillRect(0,0,w,h);
+            
+            oCtx.save();
+            
+            // Smooth sine-wave scaling (oscillates seamlessly between 1.0 and ~1.05)
+            const progress = i / totalFrames;
+            const scale = 1.025 + (Math.sin(progress * Math.PI * 2) * 0.025);
+            
+            // Translate to center the scaling focus
+            oCtx.translate(-(w*scale - w)/2, -(h*scale - h)/2);
+            oCtx.scale(scale, scale);
+            
+            // Draw clean base image (no glitches, no red tints)
+            oCtx.drawImage(baseImg, 0, 0);
+            
+            oCtx.restore();
+            frames.push(off.toDataURL('image/jpeg', 0.85));
+        }
+        
+        gifshot.createGIF({
+            images: frames,
+            gifWidth: Math.min(w, 400), // Target ~400px width for fast rendering
+            gifHeight: Math.floor(h * (Math.min(w, 400) / w)),
+            interval: 0.08, // Smooth playback (~12.5 FPS)
+        }, (obj) => {
+            if(!obj.error) {
+                currentDataUrl = obj.image;
+                
+                // Show GIF directly
+                memeImg.src = currentDataUrl;
+                memeImg.classList.remove('hide');
+                canvas.classList.add('hide');
+                showToast('🎬 Generated blazing fast animated GIF!');
+            } else {
+                showToast('⚠️ GIF Encoding failed.');
+            }
+            resolve();
+        });
+    });
 }
 
 // ─── MAIN GENERATION ─────────────────────────────────────────────────────────
@@ -767,6 +906,11 @@ async function startGeneration() {
                 showToast('🎨 AI APIs unavailable — used offline canvas mode!');
             }
 
+            if (document.getElementById('gifExportToggle') && document.getElementById('gifExportToggle').checked) {
+                setStatus(80, '🎬 Wrapping into Animated GIF...', '🎬');
+                await makeAnimatedGif();
+            }
+
             setStatus(100, '✅ Meme ready!', '✅');
             saveToHistory(currentDataUrl, 'Custom AI');
             updateMemeCount();
@@ -786,13 +930,18 @@ async function startGeneration() {
                 showToast('⚠️ Image slow to load — showing anyway');
             }
 
-            setStatus(85, '🎨 Rendering meme...', '🎨');
+            setStatus(75, '🎨 Rendering meme...', '🎨');
             showImgMode(url);
+
+            if (document.getElementById('gifExportToggle') && document.getElementById('gifExportToggle').checked) {
+                setStatus(90, '🎬 Wrapping into Animated GIF...', '🎬');
+                await makeAnimatedGif();
+            }
 
             setStatus(100, '✅ Meme generated!', '✅');
 
             // For history thumbnail — save URL, makeThumb will handle it
-            saveToHistory(url, TEMPLATES[tmpl]?.name || tmpl);
+            saveToHistory(currentDataUrl, TEMPLATES[tmpl]?.name || tmpl);
             updateMemeCount();
             setTimeout(hideOverlay, 2000);
             return;
@@ -1137,10 +1286,73 @@ function init() {
         });
     });
 
-    // ── Download ──────────────────────────────────────────
-    document.getElementById('downloadBtn').addEventListener('click', () => {
-        if (!currentDataUrl) { showToast('⚠️ No meme to download yet!'); return; }
-        downloadDataUrl(currentDataUrl, `memegpt-${Date.now()}.png`);
+    // ── Premium Toggles ───────────────────────────────────
+    const proToggle = document.getElementById('proModeToggle');
+    if (proToggle) {
+        proToggle.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                e.target.checked = false; // Prevent turning it on
+                showToast('💎 Pro Tier (No Watermark) is coming soon!', 3000);
+            }
+        });
+    }
+
+    // ── Download (IG) ─────────────────────────────────────────
+    document.getElementById('downloadBtn').addEventListener('click', async () => {
+        if (!currentDataUrl) { showToast('⚠️ No meme to share yet!'); return; }
+        
+        const btn = document.getElementById('downloadBtn');
+        const origText = btn.innerHTML;
+        btn.innerHTML = '⌛ Preparing...';
+        
+        try {
+            const res = await fetch(currentDataUrl);
+            const blob = await res.blob();
+            const isGif = blob.type.includes('gif');
+            const ext = isGif ? 'gif' : 'png';
+            const file = new File([blob], `meme.${ext}`, { type: blob.type || `image/${ext}` });
+            
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: 'Check out this meme!',
+                });
+                showToast('✅ Share menu opened!');
+            } else {
+                // Desktop fallback: copy to clipboard and open Instagram
+                if (!isGif) {
+                    if (blob.type !== 'image/png') {
+                        const img = new Image();
+                        img.src = currentDataUrl;
+                        await new Promise(r => { img.onload = r; img.onerror = r; });
+                        const off = document.createElement('canvas');
+                        off.width = img.width; off.height = img.height;
+                        off.getContext('2d').drawImage(img, 0, 0);
+                        const pngBlob = await new Promise(r => off.toBlob(r, 'image/png'));
+                        await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
+                    } else {
+                        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                    }
+                    
+                    showToast('📋 Image copied! Redirecting to Instagram...', 4000);
+                    setTimeout(() => {
+                        const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+                        const pasteKey = isMac ? 'Cmd+V' : 'Ctrl+V';
+                        showToast(`Press ${pasteKey} to post meme on Instagram`, 6000);
+                        window.open('https://instagram.com/', '_blank');
+                    }, 1500);
+                } else {
+                    // GIF cannot be copied via clipboard securely on all browsers, force download config
+                    throw new Error("GIF requires manual download for Instagram Desktop");
+                }
+            }
+        } catch (err) {
+            console.error('Share error', err);
+            showToast(`⚠️ Direct share unsupported. Downloading ${currentDataUrl.includes('gif') ? 'GIF' : 'image'}!`);
+            setTimeout(() => downloadDataUrl(currentDataUrl, `memegpt-${Date.now()}.${currentDataUrl.includes('gif') ? 'gif' : 'png'}`), 1000);
+        } finally {
+            btn.innerHTML = origText;
+        }
     });
 
     // ── Remix ─────────────────────────────────────────────
@@ -1151,10 +1363,55 @@ function init() {
     // ── Copy / Share ──────────────────────────────────────
     document.getElementById('copyImgBtn').addEventListener('click', copyImageToClipboard);
     document.getElementById('copyLinkBtn').addEventListener('click', copyLink);
-    document.getElementById('copyEmojiBtn').addEventListener('click', () => {
-        const quotes = ['😂😂😂', '💀 DEAD', '🔥🔥🔥', '😭😭', '🤣🤣🤣'];
-        navigator.clipboard.writeText(quotes[Math.floor(Math.random() * quotes.length)])
-            .then(() => showToast('😂 Emoji reaction copied!'));
+    document.getElementById('whatsappBtn').addEventListener('click', async () => {
+        if (!currentDataUrl) { showToast('⚠️ No meme to share yet!'); return; }
+        const btn = document.getElementById('whatsappBtn');
+        const origText = btn.innerHTML;
+        btn.innerHTML = '⌛ Preparing...';
+        
+        try {
+            const res = await fetch(currentDataUrl);
+            const blob = await res.blob();
+            const file = new File([blob], 'meme.png', { type: blob.type || 'image/png' });
+            
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: 'Check out this meme!',
+                    text: 'Made with MemeGPT Pro'
+                });
+                showToast('✅ Share menu opened!');
+            } else {
+                // Desktop fallback: copy to clipboard and open WhatsApp
+                if(blob.type !== 'image/png') {
+                    // Try to copy as PNG specifically for clipboard compatibility
+                    const img = new Image();
+                    img.src = currentDataUrl;
+                    await new Promise(r => { img.onload = r; img.onerror = r; });
+                    const off = document.createElement('canvas');
+                    off.width = img.width; off.height = img.height;
+                    off.getContext('2d').drawImage(img, 0, 0);
+                    const pngBlob = await new Promise(r => off.toBlob(r, 'image/png'));
+                    await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
+                } else {
+                    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                }
+                
+                showToast('📋 Image copied! Redirecting to WhatsApp Web...', 4000);
+                setTimeout(() => {
+                    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+                    const pasteKey = isMac ? 'Cmd+V' : 'Ctrl+V';
+                    showToast(`Press ${pasteKey} to paste meme inside WhatsApp`, 6000);
+                    window.open('https://web.whatsapp.com/', '_blank');
+                }, 1500);
+            }
+        } catch (err) {
+            console.error('Share error', err);
+            showToast('⚠️ Direct image share failed or unsupported. Downloading instead!');
+            setTimeout(() => downloadDataUrl(currentDataUrl, `meme-${Date.now()}.png`), 1000);
+        } finally {
+            btn.innerHTML = origText;
+        }
     });
     document.getElementById('tweetBtn').addEventListener('click', tweetMeme);
 
